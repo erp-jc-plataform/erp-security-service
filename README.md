@@ -1,52 +1,94 @@
-# Business Security API
+﻿# Business Security API
 
-Backend de autenticación y autorización para Business ERP, desarrollado con FastAPI y SQLAlchemy.
+Microservicio de autenticacion y autorizacion para **Business ERP**, desarrollado con FastAPI y SQLAlchemy. Gestiona usuarios, perfiles, empleados y el menu jerarquico del sistema. Expone una API REST documentada automaticamente con OpenAPI/Swagger.
 
-## 🚀 Características
+---
 
-- ✅ Autenticación JWT con control de intentos fallidos
-- ✅ Gestión de usuarios, perfiles y empleados
-- ✅ Sistema de menú jerárquico (recursivo)
-- ✅ Autorización basada en perfiles
-- ✅ Bloqueo automático por intentos fallidos
-- ✅ API REST documentada con OpenAPI/Swagger
-- ✅ Arquitectura limpia y escalable
+## Lenguaje y Stack Tecnologico
 
-## 📁 Estructura del Proyecto
+| Capa | Tecnologia | Version |
+|------|-----------|---------|
+| Lenguaje | **Python** | 3.x (>= 3.10 recomendado) |
+| Framework web | **FastAPI** | 0.109.0 |
+| Servidor ASGI | **uvicorn** | 0.27.0 |
+| ORM | **SQLAlchemy** | 2.0.25 |
+| Migraciones BD | **Alembic** | 1.13.1 |
+| Driver PostgreSQL | **psycopg (v3)** | 3.1.18 |
+| Validacion datos | **Pydantic v2** | 2.5.3 |
+| Autenticacion JWT | **python-jose** | 3.3.0 |
+| Hash contrasenas | **bcrypt + passlib** | 4.0.1 / 1.7.4 |
+| Variables entorno | **python-dotenv** | 1.0.0 |
+| Base de datos | **PostgreSQL** | >= 13 |
+
+---
+
+## Caracteristicas
+
+- **Autenticacion JWT** con expiracion configurable
+- **Control de intentos fallidos** — bloqueo automatico tras N intentos
+- **Gestion de usuarios** con estados (Activo, Inactivo, Bloqueado)
+- **Perfiles y roles** — asignacion de menus por perfil
+- **Menu jerarquico** — arbol recursivo segun el perfil del usuario autenticado
+- **Gestion de empleados** con busqueda por cedula
+- **Swagger UI** automatico en `/docs` (incluido por FastAPI)
+- **Migraciones de BD** con Alembic
+- **CORS** configurable por entorno
+
+---
+
+## Estructura del Proyecto
 
 ```
 Business-Security/
 ├── app/
-│   ├── core/              # Configuración, seguridad, dependencias
-│   ├── db/                # Modelos SQLAlchemy y sesión
-│   │   └── models/        # Modelos de BD
-│   ├── routers/           # Endpoints API (FastAPI)
-│   ├── schemas/           # Schemas Pydantic (validación)
-│   ├── services/          # Lógica de negocio
-│   └── main.py            # Punto de entrada
-├── init_db.py             # Script de inicialización de BD
-├── requirements.txt       # Dependencias Python
-├── .env.example           # Variables de entorno ejemplo
+│   ├── main.py                # Punto de entrada FastAPI
+│   ├── core/
+│   │   ├── config.py          # Configuracion (Pydantic Settings)
+│   │   ├── security.py        # JWT, password hashing
+│   │   └── dependencies.py    # Dependencias inyectables (DB session, auth)
+│   ├── db/
+│   │   ├── session.py         # Engine y SessionLocal
+│   │   └── models/            # Modelos SQLAlchemy
+│   │       ├── estado.py
+│   │       ├── empleados.py
+│   │       ├── usuarios.py
+│   │       ├── perfil.py
+│   │       └── menu.py
+│   ├── routers/               # Endpoints (FastAPI APIRouter)
+│   │   ├── auth.py
+│   │   ├── usuarios.py
+│   │   ├── perfiles.py
+│   │   ├── empleados.py
+│   │   └── menu.py
+│   ├── schemas/               # Schemas Pydantic (request/response)
+│   └── services/              # Logica de negocio
+├── alembic/                   # Migraciones de base de datos
+├── alembic.ini
+├── init_db.py                 # Script de inicializacion de tablas
+├── seed_db.py                 # Script para poblar datos iniciales
+├── check_db_sqlalchemy.py     # Verificar conexion a la BD
+├── requirements.txt           # Dependencias Python
+├── .env                       # Variables de entorno (no commitear)
+├── run_server.ps1             # Script PowerShell para iniciar el servidor
 └── README.md
 ```
 
-## 🛠️ Tecnologías
+---
 
-- **FastAPI** - Framework web moderno y rápido
-- **SQLAlchemy** - ORM para Python
-- **Pydantic** - Validación de datos
-- **JWT** - Autenticación con tokens
-- **Bcrypt** - Hash de contraseñas
-- **PostgreSQL/SQLite** - Base de datos
+## Instalacion
 
-## 📦 Instalación
+### Requisitos previos
+
+- Python >= 3.10
+- PostgreSQL >= 13 corriendo localmente
+- Base de datos `Auth` creada en PostgreSQL
 
 ### 1. Crear entorno virtual
 
 ```powershell
-cd c:\Proyectos\BusinessApp\Business-Security
+cd C:\Proyectos\BusinessApp\Business-Security
 python -m venv .venv
-.venv\Scripts\activate
+.venv\Scripts\Activate.ps1
 ```
 
 ### 2. Instalar dependencias
@@ -57,226 +99,279 @@ pip install -r requirements.txt
 
 ### 3. Configurar variables de entorno
 
-Copiar `.env.example` a `.env` y ajustar valores:
-
 ```powershell
 copy .env.example .env
 ```
 
-Editar `.env` con tus configuraciones:
-- `DATABASE_URL`: URL de conexión a la base de datos
-- `SECRET_KEY`: Clave secreta para JWT (cambiar en producción)
-- `ALLOWED_ORIGINS`: Orígenes permitidos para CORS
+Editar `.env` con tus valores:
 
-### 4. Inicializar base de datos con Alembic
+```env
+# Conexion PostgreSQL
+DATABASE_URL=postgresql+psycopg://postgres:tu_password@localhost:5432/Auth
 
-#### **Opción A: Base de datos nueva (PostgreSQL o SQLite)**
+# JWT
+SECRET_KEY=your-secret-key-change-in-production
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# App
+APP_NAME=Business Security API
+APP_VERSION=1.0.0
+DEBUG=True
+
+# CORS
+ALLOWED_ORIGINS=http://localhost:4200,http://localhost:4000
+
+# Seguridad login
+MAX_LOGIN_ATTEMPTS=3
+```
+
+> La `SECRET_KEY` debe ser identica a la configurada en **Business-Gateway**.
+
+### 4. Inicializar la base de datos
+
+#### Opcion A: Base de datos nueva (tablas inexistentes)
 
 ```powershell
-# Aplicar migraciones (crear tablas)
+# Aplicar migraciones (crea todas las tablas)
 alembic upgrade head
 
-# Poblar con datos iniciales
+# Crear datos iniciales (estados, perfiles, admin)
 python seed_db.py
 ```
 
-#### **Opción B: Base de datos PostgreSQL existente con tablas**
-
-Si tu base de datos PostgreSQL ya tiene las tablas creadas:
+#### Opcion B: Base de datos PostgreSQL existente con tablas ya creadas
 
 ```powershell
-# 1. Verificar conexión
+# Verificar conexion
 python check_db_sqlalchemy.py
 
-# 2. Sincronizar Alembic con el estado actual
+# Sincronizar Alembic con el estado actual sin re-crear tablas
 alembic stamp head
 
-# 3. (Opcional) Poblar datos si es necesario
+# (Opcional) Poblar datos si la BD esta vacia
 python seed_db.py
 ```
 
-**Datos de prueba creados:**
-- **Usuario:** `admin` | **Contraseña:** `admin123`
-- **Usuario:** `usuario` | **Contraseña:** `usuario123`
+**Credenciales de prueba generadas por seed_db.py:**
 
-> 📖 **Ver guía completa de migraciones**: [MIGRACIONES.md](./MIGRACIONES.md)
+| Usuario | Contrasena |
+|---------|-----------|
+| `admin` | `admin123` |
+| `usuario` | `usuario123` |
 
-## 🚀 Ejecutar el servidor
+---
+
+## Levantar el Microservicio
+
+### Desarrollo (con auto-reload)
 
 ```powershell
-# Activar entorno virtual
-& .venv\Scripts\Activate.ps1
+# 1. Activar entorno virtual (si no esta activo)
+cd C:\Proyectos\BusinessApp\Business-Security
+.venv\Scripts\Activate.ps1
 
-# Iniciar servidor
+# 2. Iniciar servidor
 uvicorn app.main:app --reload --port 8000
 ```
 
-El servidor estará disponible en: http://localhost:8000
-
-## 📚 Documentación API
-
-Una vez ejecutado el servidor, accede a:
-
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
-
-## 🔐 Endpoints Principales
-
-### Autenticación
-
-- `POST /api/auth/login` - Login con usuario/contraseña
-- `POST /api/auth/login-form` - Login formato OAuth2
-- `GET /api/auth/me` - Información del usuario actual
-- `POST /api/auth/change-password` - Cambiar contraseña
-- `POST /api/auth/reset-attempts/{usuario_id}` - Resetear intentos
-
-### Usuarios
-
-- `GET /api/usuarios/` - Listar usuarios
-- `GET /api/usuarios/{id}` - Obtener usuario
-- `POST /api/usuarios/` - Crear usuario
-- `PUT /api/usuarios/{id}` - Actualizar usuario
-- `DELETE /api/usuarios/{id}` - Eliminar usuario
-
-### Perfiles
-
-- `GET /api/perfiles/` - Listar perfiles
-- `POST /api/perfiles/` - Crear perfil
-- `POST /api/perfiles/{id}/menus` - Asignar menús a perfil
-
-### Menú
-
-- `GET /api/menu/tree` - Obtener árbol de menú del usuario actual
-- `GET /api/menu/` - Listar todos los menús
-- `POST /api/menu/` - Crear menú
-
-## 🔑 Flujo de Autenticación
-
-1. **Login**: `POST /api/auth/login`
-   ```json
-   {
-     "usuario": "admin",
-     "contrasenia": "password123"
-   }
-   ```
-   
-   Respuesta:
-   ```json
-   {
-     "access_token": "eyJhbGc...",
-     "token_type": "bearer"
-   }
-   ```
-
-2. **Usar token**: Agregar header en requests subsiguientes
-   ```
-   Authorization: Bearer eyJhbGc...
-   ```
-
-3. **Obtener menú del usuario**: `GET /api/menu/tree`
-   - Devuelve el árbol de menú jerárquico según el perfil del usuario
-
-## 🔒 Seguridad
-
-- Contraseñas hasheadas con **bcrypt**
-- Tokens JWT con expiración configurable
-- Control de intentos de login fallidos (bloqueo automático)
-- Estados de usuario (activo, inactivo, bloqueado)
-- CORS configurado para orígenes específicos
-
-## 🗃️ Modelo de Datos
-
-### Tablas principales:
-
-- `estado` - Estados (Activo, Inactivo, Bloqueado)
-- `empleados` - Información de empleados
-- `usuarios` - Credenciales y control de acceso
-- `perfil` - Roles/perfiles de usuario
-- `menu` - Menú jerárquico (recursivo)
-- `perfil_menu` - Relación N:N entre perfiles y menús
-
-## 🧪 Testing
-
-Para probar la API, puedes usar:
-
-- **Swagger UI**: http://localhost:8000/docs (interfaz interactiva)
-- **Postman/Insomnia**: Importar la colección desde OpenAPI
-- **curl** o **httpie**
-
-Ejemplo con curl:
+### Usando el script incluido
 
 ```powershell
-# Login
-curl -X POST "http://localhost:8000/api/auth/login" `
-  -H "Content-Type: application/json" `
-  -d '{\"usuario\":\"admin\",\"contrasenia\":\"password123\"}'
-
-# Obtener menú (con token)
-curl -X GET "http://localhost:8000/api/menu/tree" `
-  -H "Authorization: Bearer YOUR_TOKEN_HERE"
+cd C:\Proyectos\BusinessApp\Business-Security
+.\run_server.ps1
 ```
 
-## 🔧 Configuración de Producción
-
-1. Cambiar `SECRET_KEY` en `.env`
-2. Usar PostgreSQL en lugar de SQLite
-3. Configurar `DEBUG=False`
-4. Ajustar `ALLOWED_ORIGINS` con dominios reales
-5. Usar HTTPS (detrás de proxy/gateway)
-6. Configurar logs y monitoreo
-
-## 🔄 Migraciones de Base de Datos
-
-Este proyecto usa **Alembic** para gestionar migraciones de base de datos.
-
-### Flujo completo con base de datos existente:
+### Produccion
 
 ```powershell
-# 1. Configurar .env con credenciales PostgreSQL
-# DATABASE_URL=postgresql+psycopg://postgres:tu_password@localhost:5432/Auth
-
-# 2. Verificar conexión
-python check_db_sqlalchemy.py
-
-# 3. Sincronizar estado actual
-alembic stamp head
-
-# 4. Ver estado de migraciones
-alembic current
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
-### Comandos básicos para desarrollo:
+El servidor estara disponible en `http://localhost:8000`.
+
+### Verificar que esta corriendo
 
 ```powershell
-# Crear nueva migración después de modificar modelos
-alembic revision --autogenerate -m "descripción del cambio"
+Invoke-RestMethod -Uri http://localhost:8000/health
+# Respuesta esperada: @{status=ok}
+```
+
+---
+
+## URLs Disponibles
+
+| URL | Descripcion |
+|-----|-------------|
+| `http://localhost:8000/` | Root — info basica del servicio |
+| `http://localhost:8000/health` | Health check |
+| `http://localhost:8000/docs` | Swagger UI interactivo |
+| `http://localhost:8000/redoc` | ReDoc (documentacion alternativa) |
+| `http://localhost:8000/openapi.json` | Spec OpenAPI 3.0 en JSON |
+
+---
+
+## Endpoints de la API
+
+### Autenticacion (`/api/auth`)
+
+| Metodo | Ruta | Auth | Descripcion |
+|--------|------|------|-------------|
+| POST | `/api/auth/login` | No | Login con usuario y contrasena |
+| POST | `/api/auth/login-form` | No | Login en formato OAuth2 form |
+| GET | `/api/auth/me` | JWT | Datos del usuario autenticado |
+| POST | `/api/auth/change-password` | JWT | Cambiar contrasena |
+| POST | `/api/auth/reset-attempts/{id}` | JWT | Resetear intentos fallidos |
+
+### Empleados (`/api/empleados`)
+
+| Metodo | Ruta | Descripcion |
+|--------|------|-------------|
+| GET | `/api/empleados/` | Listar todos los empleados |
+| GET | `/api/empleados/{id}` | Obtener empleado por ID |
+| GET | `/api/empleados/cedula/{cedula}` | Buscar empleado por cedula |
+| POST | `/api/empleados/` | Crear empleado |
+| PUT | `/api/empleados/{id}` | Actualizar empleado |
+| DELETE | `/api/empleados/{id}` | Eliminar empleado |
+
+### Usuarios (`/api/usuarios`)
+
+| Metodo | Ruta | Descripcion |
+|--------|------|-------------|
+| GET | `/api/usuarios/` | Listar usuarios |
+| GET | `/api/usuarios/{id}` | Obtener usuario |
+| POST | `/api/usuarios/` | Crear usuario |
+| PUT | `/api/usuarios/{id}` | Actualizar usuario |
+| DELETE | `/api/usuarios/{id}` | Eliminar usuario |
+
+### Perfiles (`/api/perfiles`)
+
+| Metodo | Ruta | Descripcion |
+|--------|------|-------------|
+| GET | `/api/perfiles/` | Listar perfiles |
+| GET | `/api/perfiles/{id}` | Obtener perfil |
+| POST | `/api/perfiles/` | Crear perfil |
+| PUT | `/api/perfiles/{id}` | Actualizar perfil |
+| POST | `/api/perfiles/{id}/menus` | Asignar menus al perfil |
+
+### Menu (`/api/menu`)
+
+| Metodo | Ruta | Descripcion |
+|--------|------|-------------|
+| GET | `/api/menu/tree` | Arbol de menu del usuario autenticado |
+| GET | `/api/menu/` | Listar todos los menus |
+| POST | `/api/menu/` | Crear elemento de menu |
+| PUT | `/api/menu/{id}` | Actualizar elemento de menu |
+
+---
+
+## Flujo de Autenticacion
+
+### 1. Login
+
+```powershell
+Invoke-RestMethod -Uri 'http://localhost:8000/api/auth/login' `
+  -Method Post -ContentType 'application/json' `
+  -Body '{"usuario":"admin","contrasenia":"admin123"}'
+```
+
+Respuesta:
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer"
+}
+```
+
+### 2. Usar el token
+
+Incluir el token en el header de cada peticion autenticada:
+
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+### 3. Obtener datos del usuario actual
+
+```powershell
+$token = "eyJhbGciOiJIUzI1..."
+Invoke-RestMethod -Uri 'http://localhost:8000/api/auth/me' `
+  -Headers @{ Authorization = "Bearer $token" }
+```
+
+---
+
+## Modelo de Datos
+
+### Tablas principales
+
+| Tabla | Descripcion |
+|-------|-------------|
+| `estado` | Estados del sistema (Activo, Inactivo, Bloqueado) |
+| `empleados` | Informacion personal de empleados |
+| `usuarios` | Credenciales, perfil y estado de acceso |
+| `perfil` | Roles/perfiles de usuario |
+| `menu` | Elementos de menu (estructura jerarquica recursiva) |
+| `perfil_menu` | Relacion N:N entre perfiles y menus |
+
+---
+
+## Migraciones con Alembic
+
+```powershell
+# Crear nueva migracion tras modificar un modelo
+alembic revision --autogenerate -m "descripcion del cambio"
 
 # Aplicar migraciones pendientes
 alembic upgrade head
 
-# Revertir última migración
+# Revertir ultima migracion
 alembic downgrade -1
 
-# Ver historial
+# Ver estado actual
+alembic current
+
+# Ver historial de migraciones
 alembic history
 ```
 
-📖 **Guía completa**: Ver [MIGRACIONES.md](./MIGRACIONES.md) para documentación detallada.
+Para el flujo completo con base de datos existente, consultar [MIGRACIONES.md](./MIGRACIONES.md).
 
-## 📝 Próximas Mejoras
+---
 
-- [ ] Refresh tokens
-- [ ] Roles y permisos granulares
-- [ ] Auditoría de acciones
-- [ ] Rate limiting
-- [ ] Tests unitarios y de integración
-- [x] Alembic para migraciones de BD
-- [ ] Logs estructurados
+## Swagger UI
 
-## 📄 Licencia
+FastAPI genera la documentacion OpenAPI automaticamente a partir de los decoradores de rutas, schemas Pydantic y type hints. No requiere configuracion adicional.
 
-Proyecto interno de Business ERP
+Para acceder:
+1. Levantar el servidor (`uvicorn app.main:app --reload --port 8000`)
+2. Abrir `http://localhost:8000/docs`
+3. Usar el boton **Authorize** para ingresar el JWT y probar endpoints protegidos
 
-## 👥 Contacto
+---
 
-Para dudas o sugerencias, contactar al equipo de desarrollo.
+## Seguridad
+
+- Contrasenas hasheadas con **bcrypt** (factor de costo configurable)
+- Tokens JWT firmados con HS256, expiracion configurable via `ACCESS_TOKEN_EXPIRE_MINUTES`
+- **Bloqueo automatico** tras `MAX_LOGIN_ATTEMPTS` intentos fallidos consecutivos
+- Estados de usuario: Activo / Inactivo / Bloqueado
+- CORS restringido a origenes configurados en `.env`
+
+---
+
+## Configuracion de Produccion
+
+1. Cambiar `SECRET_KEY` a un valor seguro generado aleatoriamente
+2. Configurar `DEBUG=False`
+3. Usar PostgreSQL (no SQLite)
+4. Ajustar `ALLOWED_ORIGINS` con dominios reales
+5. Correr detras del API Gateway (Business-Gateway en puerto 4000)
+6. Usar HTTPS en el gateway
+7. Incrementar `workers` en uvicorn segun carga esperada
+
+---
+
+## Licencia
+
+Proyecto interno — Business ERP.
