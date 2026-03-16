@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     
     # CORS - formato: separado por comas
-    ALLOWED_ORIGINS: str = "http://localhost:4200,http://localhost:8100"
+    ALLOWED_ORIGINS: str = "http://localhost:4000,http://localhost:4200,http://localhost:8100,http://localhost:3000"
     
     # Login Security
     MAX_LOGIN_ATTEMPTS: int = 3

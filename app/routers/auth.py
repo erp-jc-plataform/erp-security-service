@@ -48,7 +48,14 @@ async def login(
         expires_delta=access_token_expires
     )
     
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "usuario_id": user.usuario_id,
+        "usuario": user.usuario,
+        "nombre": user.empleado.nombre if user.empleado else user.usuario,
+        "perfil_id": user.perfil_id,
+    }
 
 
 @router.post("/login-form", response_model=Token)

@@ -15,6 +15,10 @@ class Token(BaseModel):
     """Response de token JWT"""
     access_token: str
     token_type: str = "bearer"
+    usuario_id: Optional[int] = None
+    usuario: Optional[str] = None
+    nombre: Optional[str] = None
+    perfil_id: Optional[int] = None
 
 
 class TokenData(BaseModel):
